@@ -2,7 +2,6 @@ import dateFormat from 'dateformat'
 import { History } from 'history'
 import update from 'immutability-helper'
 import * as React from 'react'
-import ReactPaginate from 'react-paginate'
 import {
   Button,
   Checkbox,
@@ -30,11 +29,8 @@ interface TodosProps {
   history: History
 }
 
-export type NextKey = null | string
-
 interface TodosState {
-  curPageIndex: number
-  pages: NextKey[]
+  filterStatus: string
   todos: Todo[]
   newTodoName: string
   loadingTodos: boolean
@@ -43,21 +39,17 @@ interface TodosState {
 
 export class Todos extends React.PureComponent<TodosProps, TodosState> {
   state: TodosState = {
-    curPageIndex: 0,
-    pages: [null],
+    filterStatus: '',
     todos: [],
     newTodoName: '',
     loadingTodos: true,
     keywordSeach: ''
   }
 
-  fetchTodos = async (startKey?: NextKey) => {
-    const { todos, nextKey } = await getTodos(
-      this.props.auth.getIdToken(),
-      startKey
-    )
+  fetchTodos = async (filterStatus: string) => {
+    const todos = await getTodos(this.props.auth.getIdToken(), filterStatus)
+
     this.setState({
-      pages: [...this.state.pages, nextKey],
       todos,
       loadingTodos: false
     })
@@ -73,7 +65,7 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
 
   onTodoCreate = async (event: React.ChangeEvent<HTMLButtonElement>) => {
     try {
-      const dueDate = this.calculateDueDate()
+      const dueDate = this.calculateDueDate(7)
       const newTodo = await createTodo(this.props.auth.getIdToken(), {
         name: this.state.newTodoName,
         dueDate
@@ -101,7 +93,7 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
   onTodoPhotoDelete = async (todoId: string) => {
     try {
       await deletePhoto(this.props.auth.getIdToken(), todoId)
-      await this.fetchTodos()
+      await this.fetchTodos(this.state.filterStatus)
     } catch {
       alert("Todo's photo deletion failed")
     }
@@ -127,18 +119,10 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
 
   async componentDidMount() {
     try {
-      await this.fetchTodos()
+      await this.fetchTodos('')
     } catch (e) {
       alert(`Failed to fetch todos: ${(e as Error).message}`)
     }
-  }
-
-  handlePaginate = () => {
-    const newIndex = ++this.state.curPageIndex
-    this.setState({
-      curPageIndex: newIndex
-    })
-    this.fetchTodos(this.state.pages[newIndex])
   }
 
   render() {
@@ -146,12 +130,10 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
     return (
       <div>
         <Header as="h1">TODOs</Header>
-
         {this.renderCreateTodoInput()}
+        {this.renderStatusFilter()}
 
         {this.renderTodos()}
-
-        {this.renderPagination()}
       </div>
     )
   }
@@ -274,26 +256,48 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
     )
   }
 
-  renderPagination() {
+  renderStatusFilter() {
     return (
-      <ReactPaginate
-        nextLabel="next >"
-        previousLabel="< previous"
-        onPageChange={this.handlePaginate}
-        pageCount={2}
-        pageClassName="page-item-none"
-        breakClassName="page-item-none"
-        containerClassName="pagination"
-        renderOnZeroPageCount={null}
-        previousClassName="page-item"
-        nextClassName="page-item"
-      />
+      <Button.Group style={{ marginBottom: '5px' }}>
+        <Button
+          onClick={() => this.handleStatusChange('')}
+          style={{
+            backgroundColor: this.state.filterStatus === '' ? 'green' : ''
+          }}
+        >
+          All
+        </Button>
+        <Button
+          onClick={() => this.handleStatusChange('completed')}
+          style={{
+            backgroundColor:
+              this.state.filterStatus === 'completed' ? 'green' : ''
+          }}
+        >
+          Completed
+        </Button>
+        <Button
+          onClick={() => this.handleStatusChange('uncompleted')}
+          style={{
+            backgroundColor:
+              this.state.filterStatus === 'uncompleted' ? 'green' : ''
+          }}
+        >
+          Uncompleted
+        </Button>
+      </Button.Group>
     )
   }
 
-  calculateDueDate(): string {
+  async handleStatusChange(status: string | '') {
+    this.setState({ filterStatus: status, loadingTodos: true })
+
+    await this.fetchTodos(status)
+  }
+
+  calculateDueDate(num: number): string {
     const date = new Date()
-    date.setDate(date.getDate() + 7)
+    date.setDate(date.getDate() + num)
 
     return dateFormat(date, 'yyyy-mm-dd') as string
   }

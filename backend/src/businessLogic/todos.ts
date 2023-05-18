@@ -10,10 +10,9 @@ const attachmentUtils = new AttachmentUtils()
 
 export async function getTodos(
   userId: string,
-  limit: number,
-  nextKey: object
-): Promise<AWS.DynamoDB.DocumentClient.QueryOutput> {
-  return todoAccess.getTodos(userId, limit, nextKey)
+  status: string
+): Promise<TodoItem[]> {
+  return todoAccess.getTodos(userId, status)
 }
 
 export async function createTodo(

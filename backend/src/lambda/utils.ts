@@ -14,31 +14,3 @@ export function getUserId(event: APIGatewayProxyEvent): string {
 
   return parseUserId(jwtToken)
 }
-
-export function encodeNextKey(nextKey) {
-  if (!nextKey) {
-    return null
-  }
-  return encodeURIComponent(JSON.stringify(nextKey))
-}
-
-export function decodeNextKey(nextKey) {
-  if (!nextKey) {
-    return undefined
-  }
-  return JSON.parse(decodeURIComponent(nextKey))
-}
-
-export function parseLimitParam(paramLimit) {
-  if (!paramLimit) {
-    return undefined
-  }
-
-  const limit = parseInt(paramLimit, 10)
-
-  if (limit <= 0) {
-    throw new Error('limit must be positive')
-  }
-
-  return limit
-}

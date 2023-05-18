@@ -4,12 +4,7 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
 import * as middy from 'middy'
 import { cors } from 'middy/middlewares'
 
-import {
-  decodeNextKey,
-  encodeNextKey,
-  getUserId,
-  parseLimitParam
-} from '../utils'
+import { getUserId } from '../utils'
 import { createLogger } from '../../utils/logger'
 import { getTodos } from '../../businessLogic/todos'
 
@@ -20,23 +15,15 @@ export const handler = middy(
     logger.info('Processing GetTodos event...')
     const userId = getUserId(event)
 
-    const { limit, nextKey } = event.queryStringParameters
-
-    const parsedLimit = parseLimitParam(limit) || 5
-    const decodedNextKey = decodeNextKey(nextKey)
+    const status = event.queryStringParameters?.status || ''
 
     try {
-      const { Items, LastEvaluatedKey } = await getTodos(
-        userId,
-        parsedLimit,
-        decodedNextKey
-      )
+      const items = await getTodos(userId, status)
       logger.info('Successfully retrieved todolist')
       return {
         statusCode: 200,
         body: JSON.stringify({
-          items: Items,
-          nextKey: encodeNextKey(LastEvaluatedKey)
+          items
         })
       }
     } catch (err) {

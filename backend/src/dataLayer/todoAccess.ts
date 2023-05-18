@@ -13,25 +13,31 @@ export class TodoAccess {
     private readonly todosTable = process.env.TODOS_TABLE
   ) {}
 
-  async getTodos(
-    userId: string,
-    limit: number,
-    nextKey: object
-  ): Promise<AWS.DynamoDB.DocumentClient.QueryOutput> {
+  async getTodos(userId: string, status: string): Promise<TodoItem[]> {
     logger.info('Getting all todo items')
-    const result = await this.docClient
+    let queryParams = {}
+    let expParams = {}
+    if (status) {
+      queryParams = {
+        FilterExpression: 'done = :done'
+      }
+      expParams = {
+        ':done': status === 'completed' ? true : false
+      }
+    }
+    const response = await this.docClient
       .query({
         TableName: this.todosTable,
         KeyConditionExpression: 'userId = :userId',
         ExpressionAttributeValues: {
-          ':userId': userId
+          ':userId': userId,
+          ...expParams
         },
-        Limit: limit,
-        ExclusiveStartKey: nextKey
+        ...queryParams
       })
       .promise()
 
-    return result
+    return response.Items as TodoItem[]
   }
 
   async createTodo(newTodo: TodoItem): Promise<TodoItem> {

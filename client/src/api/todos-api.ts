@@ -3,16 +3,15 @@ import { Todo, TodosResponse } from '../types/Todo'
 import { CreateTodoRequest } from '../types/CreateTodoRequest'
 import Axios from 'axios'
 import { UpdateTodoRequest } from '../types/UpdateTodoRequest'
-import { NextKey } from '../components/Todos'
 
 export async function getTodos(
   idToken: string,
-  startKey?: NextKey
-): Promise<TodosResponse> {
+  status: string
+): Promise<Todo[]> {
   console.log('Fetching todos')
 
   const response = await Axios.get(
-    `${apiEndpoint}/todos?limit=5&${startKey ? `nextKey=${startKey}` : ''}`,
+    `${apiEndpoint}/todos${status ? `?status=${status}` : ''}`,
     {
       headers: {
         'Content-Type': 'application/json',
@@ -20,8 +19,8 @@ export async function getTodos(
       }
     }
   )
-  const { items, nextKey } = response.data
-  return { todos: items, nextKey }
+
+  return response.data.items
 }
 
 export async function createTodo(
